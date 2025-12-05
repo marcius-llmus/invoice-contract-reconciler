@@ -7,7 +7,8 @@ from app.extraction.schemas import InvoiceData, ContractMatchResult, Discrepancy
 class ReconciliationService:
     """Service for matching invoices against contracts."""
 
-    async def reconcile(self, invoice: InvoiceData, contracts: list[dict]) -> tuple[str | None, str, list[Discrepancy]]:
+    @staticmethod
+    async def reconcile(invoice: InvoiceData, contracts: list[dict]) -> tuple[str | None, str, list[Discrepancy]]:
         """
         Analyzes invoice against a list of contracts.
         Returns: (matched_contract_id, notes, discrepancies)

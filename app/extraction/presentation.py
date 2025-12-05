@@ -51,7 +51,7 @@ class ExtractionWebSocketHandler:
             async with sessionmanager.session() as db:
                 try:
                     file_id = await self.ingestion.upload_from_base64(filename, content_b64)
-                    await self.storage.create_document(db, file_id, filename)
+                    await self.storage.get_or_create_document(db, file_id, filename)
                     await self._broadcast_list_update()
 
                 except Exception as e:

@@ -21,7 +21,8 @@ class ExtractionService:
             
         return "Unsupported document type for extraction."
 
-    async def _extract_xlsx(self, file_path: str) -> dict:
+    @staticmethod
+    async def _extract_xlsx(file_path: str) -> dict:
         """Extracts invoice data from Excel using LlamaSheets."""
         client = get_sheets_client()
         file_response = await client.upload_file(file_path)
@@ -61,12 +62,14 @@ class ExtractionService:
             line_items=line_items,
         ).model_dump()
 
-    async def _parse_text(self, file_path: str) -> str:
+    @staticmethod
+    async def _parse_text(file_path: str) -> str:
         """Parses document to raw text using LlamaParse."""
         parser = get_parser()
         documents = await parser.aload_data(file_path)
         return "\n\n".join([d.text for d in documents])
 
+    @staticmethod
     async def _extract_contract(self, file_path: str) -> dict:
         """Extracts text AND structured data from a contract."""
         full_text = await self._parse_text(file_path)

@@ -9,7 +9,8 @@ from app.extraction.events import FileInfo
 class IngestionService:
     """Service for handling file downloads and local storage."""
 
-    async def download_file(self, file_id: str) -> FileInfo:
+    @staticmethod
+    async def download_file(file_id: str) -> FileInfo:
         """Downloads a file from LlamaCloud to a temporary local path."""
         client = get_llama_cloud_client()
         
@@ -29,7 +30,8 @@ class IngestionService:
 
         return FileInfo(file_id=file_id, file_path=file_path, filename=file_meta.name)
 
-    async def upload_from_base64(self, filename: str, content_b64: str) -> str:
+    @staticmethod
+    async def upload_from_base64(filename: str, content_b64: str) -> str:
         """Handles a base64 upload, saves to temp, uploads to LlamaCloud, returns file_id."""
         temp_path = f"/tmp/{uuid.uuid4()}_{filename}"
         try:
