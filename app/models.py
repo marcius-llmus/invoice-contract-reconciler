@@ -9,6 +9,7 @@ class Document(Base):
 
     id = Column(String, primary_key=True)  # This matches the LlamaCloud file_id (dw, it is a PoC xd)
     filename = Column(String, index=True, unique=True)
+    # todo category should not be 'processing' or 'failed'.. update this hack later
     category = Column(String)  # 'invoice', 'contract', 'other'
     contract_id = Column(String, ForeignKey("documents.id"), nullable=True)
     extracted_data = Column(JSON, nullable=True)
