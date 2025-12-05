@@ -19,6 +19,10 @@
         <span id="status-{{ doc.id }}" class="px-2 py-1 text-xs rounded bg-blue-900/30 text-blue-200 border border-blue-700/50 animate-pulse">
             Processing
         </span>
+    {% elif doc.category == 'failed' %}
+        <span id="status-{{ doc.id }}" class="px-2 py-1 text-xs rounded bg-yellow-900 text-yellow-200 border border-yellow-700">
+            Parsing Failed
+        </span>
     {% else %}
         <span id="status-{{ doc.id }}" class="px-2 py-1 text-xs rounded bg-gray-700 text-gray-300 border border-gray-600">
             {{ doc.category }}

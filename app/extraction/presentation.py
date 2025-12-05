@@ -134,6 +134,8 @@ class ExtractionWebSocketHandler:
         color = "bg-purple-900 text-purple-200 border border-purple-700"
         if event.level == "error":
             color = "bg-red-900 text-red-200 border border-red-700"
+        elif event.level == "warning":
+            color = "bg-yellow-900 text-yellow-200 border border-yellow-700"
 
         html = self._create_status_html(event.file_id, event.message, color)
         await self.ws_manager.send_text(html)

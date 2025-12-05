@@ -1,3 +1,4 @@
+import logging
 from workflows import Context, Workflow, step
 from workflows.events import StopEvent
 
@@ -24,6 +25,8 @@ from app.extraction.services.ingestion import IngestionService
 from app.extraction.services.classification import ClassificationService
 from app.extraction.services.extraction import ExtractionService
 from app.extraction.services.reconciliation import ReconciliationService
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentAutomationWorkflow(Workflow):
@@ -155,26 +158,27 @@ class DocumentAutomationWorkflow(Workflow):
         try:
             result_data = await self.extraction.extract(event.file_path, event.classification)
 
-            # Handle Contract (Composite Result: Text + Data) vs Invoice (Data only)
-            if event.classification.document_category == DocumentCategory.CONTRACT:
-                # result_data is {"text_content": str, "extracted_data": dict}
-                text_content = result_data.get("text_content")
-                extracted_data = result_data.get("extracted_data")
+            async with sessionmanager.session() as db:
+                # Handle Contract (Composite Result: Text + Data) vs Invoice (Data only)
+                if event.classification.document_category == DocumentCategory.CONTRACT:
+                    # result_data is {"text_content": str, "extracted_data": dict}
+                    text_content = result_data.get("text_content")
+                    extracted_data = result_data.get("extracted_data")
 
-                await self.storage.update_doc(
-                    db,
-                    event.file_id,
-                    text_content=text_content,
-                    extracted_data=extracted_data
-                )
-                final_data = extracted_data
-            else:
-                await self.storage.update_doc(
-                    db,
-                    event.file_id,
-                    extracted_data=result_data
-                )
-                final_data = result_data
+                    await self.storage.update_doc(
+                        db,
+                        event.file_id,
+                        text_content=text_content,
+                        extracted_data=extracted_data
+                    )
+                    final_data = extracted_data
+                else:
+                    await self.storage.update_doc(
+                        db,
+                        event.file_id,
+                        extracted_data=result_data
+                    )
+                    final_data = result_data
 
             return ExtractionFinishedEvent(
                 file_id=event.file_id, filename=event.filename,
@@ -183,7 +187,7 @@ class DocumentAutomationWorkflow(Workflow):
                 data=final_data
             )
         except Exception as e:
-            ctx.write_event_to_stream(StatusEvent(file_id=event.file_id, message=f"Extraction error: {e}", level="error"))
+            ctx.write_event_to_stream(StatusEvent(file_id=event.file_id, message=f"Extraction error: {e}", level="warning"))
             async with sessionmanager.session() as db:
                 await self.storage.update_doc(db, event.file_id, category="failed", reconciliation_notes=f"Extraction failed: {e}")
             return ExtractionFinishedEvent(
@@ -191,7 +195,7 @@ class DocumentAutomationWorkflow(Workflow):
                 status="skipped",
                 result=ProcessingResult(
                     file_id=event.file_id, filename=event.filename, classification=event.classification,
-                    reconciliation_notes=f"Extraction failed: {e}"
+                    reconciliation_notes=f"Extraction Failed"
                 )
             )
 

@@ -1,8 +1,10 @@
+import logging
 from llama_index.core.prompts import PromptTemplate
 from llama_cloud_services.beta.sheets import SpreadsheetParsingConfig
 from app.extraction.clients import get_parser, get_llm, get_sheets_client
 from app.extraction.schemas import DocumentClassification, DocumentCategory, InvoiceData, LineItem, ContractData
 
+logger = logging.getLogger(__name__)
 
 class ExtractionService:
     """Service for extracting structured data or text from documents."""
@@ -32,14 +34,21 @@ class ExtractionService:
         content_parts = []
         if job_result.regions:
             for region in job_result.regions:
-                df = await client.adownload_region_as_dataframe(
-                    job_id=job.id,
-                    region_id=region.region_id
-                )
-                if not df.empty:
-                    content_parts.append(f"--- Region ({region.region_type}) ---\n{df.to_string(index=False)}")
+                try:
+                    df = await client.adownload_region_as_dataframe(
+                        job_id=job.id,
+                        region_id=region.region_id
+                    )
+                    if not df.empty:
+                        content_parts.append(f"--- Region ({region.region_type}) ---\n{df.to_string(index=False)}")
+                except Exception as e:
+                    logger.error(f"Failed to download region {region.region_id} for job {job.id}: {e}")
+                    continue
 
         full_text = "\n\n".join(content_parts)
+        if not full_text:
+            raise ValueError("Failed to retrieve spreadsheet data.")
+
         prompt = PromptTemplate("Extract invoice data from the following spreadsheet content:\n{text}\n")
         llm = get_llm()
 
