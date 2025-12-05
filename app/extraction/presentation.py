@@ -113,12 +113,10 @@ class ExtractionWebSocketHandler:
             async for event in handler.stream_events():
                 if isinstance(event, StatusEvent):
                     await self._handle_status_event(event)
-                elif isinstance(event, ProcessingCompleteEvent):
-                    await self._handle_completion_event()
 
             await handler
             logger.info(f"Workflow completed successfully.")
-            await self._broadcast_list_update()
+            await self._handle_completion_event()
 
         except WebSocketDisconnect:
             logger.warning(f"WebSocket disconnected during workflow")
