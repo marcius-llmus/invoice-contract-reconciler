@@ -23,7 +23,7 @@ class ExtractionService:
     async def _extract_xlsx(self, file_path: str) -> dict:
         """Extracts invoice data from Excel using LlamaSheets + LLM."""
         client = get_sheets_client()
-        file_response = await client.upload_file(file_path)
+        file_response = await client.aupload_file(file_path)
         
         config = SpreadsheetParsingConfig(sheet_names=None, generate_additional_metadata=True)
         job = await client.acreate_job(file_id=file_response.id, config=config)

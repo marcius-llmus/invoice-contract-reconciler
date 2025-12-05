@@ -50,19 +50,20 @@ class ExtractionWebSocketHandler:
         if filename and content_b64:
             logger.info(f"Received file upload via WebSocket: {filename}")
 
-            async with sessionmanager.session() as db:
-                try:
+            try:
+                async with sessionmanager.session() as db:
                     file_id = await self.ingestion.upload_from_base64(filename, content_b64)
                     await self.storage.get_or_create_document(db, file_id, filename)
-                    await self._broadcast_list_update()
+                
+                await self._broadcast_list_update()
 
-                except Exception as e:
-                    logger.error(f"Error processing upload: {e}", exc_info=True)
-                    error_html = templates.get_template("extraction/partials/upload_error.html").render(
-                        filename=filename,
-                        error=str(e)
-                    )
-                    await self.ws_manager.send_text(error_html)
+            except Exception as e:
+                logger.error(f"Error processing upload: {e}", exc_info=True)
+                error_html = templates.get_template("extraction/partials/upload_error.html").render(
+                    filename=filename,
+                    error=str(e)
+                )
+                await self.ws_manager.send_text(error_html)
 
     async def _handle_start_batch(self, data: dict):
         filenames = data.get("filenames", [])

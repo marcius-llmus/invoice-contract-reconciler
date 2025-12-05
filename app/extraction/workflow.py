@@ -105,6 +105,13 @@ class DocumentAutomationWorkflow(Workflow):
                 )
             )
 
+            async with sessionmanager.session() as db:
+                await self.storage.update_doc(
+                    db, 
+                    f_info.file_id, 
+                    category=classification.document_category.value
+                )
+
             if classification.document_category == DocumentCategory.OTHER:
                 async with sessionmanager.session() as db:
                     await self.storage.update_doc(db, f_info.file_id, category="other", reconciliation_notes="Skipped: Unsupported category.")
@@ -157,7 +164,6 @@ class DocumentAutomationWorkflow(Workflow):
                 await self.storage.update_doc(
                     db,
                     event.file_id,
-                    category=event.classification.document_category.value,
                     text_content=text_content,
                     extracted_data=extracted_data
                 )
@@ -166,7 +172,6 @@ class DocumentAutomationWorkflow(Workflow):
                 await self.storage.update_doc(
                     db,
                     event.file_id,
-                    category=event.classification.document_category.value,
                     extracted_data=result_data
                 )
                 final_data = result_data

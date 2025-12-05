@@ -1,4 +1,4 @@
-from sqlalchemy import select, text
+from sqlalchemy import select, text, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.models import Document
@@ -54,7 +54,10 @@ class StorageService:
         """Retrieves and organizes documents for the dashboard view."""
         stmt = (
             select(Document)
-            .where(Document.contract_id.is_(None))
+            .where(or_(
+                Document.contract_id.is_(None),
+                Document.category == DocumentCategory.CONTRACT.value
+            ))
             .options(selectinload(Document.linked_invoices))
             .order_by(Document.created_at.desc())
         )
