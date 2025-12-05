@@ -32,22 +32,13 @@ class DocumentAutomationWorkflow(Workflow):
     Flow: Ingest -> Classify -> Extract -> (Branch) -> Reconcile.
     """
 
-    def __init__(
-        self, 
-        *args, 
-        ingestion_service: IngestionService = None,
-        classification_service: ClassificationService = None,
-        extraction_service: ExtractionService = None,
-        reconciliation_service: ReconciliationService = None,
-        storage_service: StorageService = None,
-        **kwargs
-    ):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ingestion = ingestion_service or IngestionService()
-        self.classification = classification_service or ClassificationService()
-        self.extraction = extraction_service or ExtractionService()
-        self.reconciliation = reconciliation_service or ReconciliationService()
-        self.storage = storage_service or StorageService()
+        self.ingestion = IngestionService()
+        self.classification = ClassificationService()
+        self.extraction = ExtractionService()
+        self.reconciliation = ReconciliationService()
+        self.storage = StorageService()
 
     @step
     async def ingest(self, event: FilesUploadedEvent, ctx: Context) -> BatchIngestionCompletedEvent | None:
