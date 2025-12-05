@@ -13,6 +13,7 @@ dependencies = [
     "llama-index-workflows>=2.5.0,<3.0.0",
     "llama-index-llms-openai>=0.3.0",
     "llama-cloud-services>=0.6.69",
+    "pandas>=2.3.3",
 ]
 
 [dependency-groups]

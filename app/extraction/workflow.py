@@ -101,7 +101,7 @@ class DocumentAutomationWorkflow(Workflow):
             ctx.write_event_to_stream(
                 StatusEvent(
                     file_id=f_info.file_id,
-                    message=f"Classified as {classification.document_category} ({classification.file_type})"
+                    message=f"Classified as {classification.document_category.value} ({classification.file_type})"
                 )
             )
 
