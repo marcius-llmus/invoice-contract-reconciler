@@ -152,11 +152,10 @@ class ExtractionWebSocketHandler:
 
     async def _broadcast_list_update(self):
         async with sessionmanager.session() as db:
-            contracts, invoices = await self.storage.get_dashboard_view_data(db)
+            documents = await self.storage.get_dashboard_view_data(db)
             
             html = templates.get_template("extraction/partials/list.html").render(
-                contracts=contracts,
-                invoices=invoices
+                documents=documents
             )
             
             wrapper = f'<div id="file-list" hx-swap-oob="innerHTML">{html}</div>'

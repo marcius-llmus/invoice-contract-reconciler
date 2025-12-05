@@ -285,7 +285,8 @@ class DocumentAutomationWorkflow(Workflow):
                 matched_contract_id=matched_id,
                 extracted_data=final_data,
                 reconciliation_notes=notes,
-                discrepancies=discrepancies,
+                discrepancies=[d.model_dump() for d in discrepancies],
+                contract_id=matched_id
             )
 
             await self.storage.update_doc(
@@ -293,7 +294,8 @@ class DocumentAutomationWorkflow(Workflow):
                 event.file_id,
                 extracted_data=final_data,
                 reconciliation_notes=notes,
-                discrepancies=[d.model_dump() for d in discrepancies]
+                discrepancies=[d.model_dump() for d in discrepancies],
+                contract_id=matched_id
             )
 
         msg = "Match confirmed." if not discrepancies else f"{len(discrepancies)} discrepancies."

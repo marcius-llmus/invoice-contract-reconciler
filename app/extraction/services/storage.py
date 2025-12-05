@@ -1,5 +1,6 @@
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from app.models import Document
 from app.extraction.schemas import CacheField, DocumentCategory
 
@@ -48,33 +49,17 @@ class StorageService:
         result = await db.execute(stmt)
         return [doc for doc in result.scalars().all() if not doc.extracted_data.get('matched_contract_id')]
 
-    async def get_dashboard_view_data(self, db: AsyncSession) -> tuple[list[Document], dict[str, list[Document]]]:
+    @staticmethod
+    async def get_dashboard_view_data(db: AsyncSession) -> list[Document]:
         """Retrieves and organizes documents for the dashboard view."""
-        all_docs = await self._fetch_all_documents(db)
-        return self._organize_documents(all_docs)
-
-    async def _fetch_all_documents(self, db: AsyncSession) -> list[Document]:
-        result = await db.execute(select(Document).order_by(Document.created_at.desc()))
+        stmt = (
+            select(Document)
+            .where(Document.contract_id.is_(None))
+            .options(selectinload(Document.linked_invoices))
+            .order_by(Document.created_at.desc())
+        )
+        result = await db.execute(stmt)
         return list(result.scalars().all())
-
-    def _organize_documents(self, all_docs: list[Document]) -> tuple[list[Document], dict[str, list[Document]]]:
-        contracts_lookup = {d.id: d for d in all_docs if d.category == DocumentCategory.CONTRACT.value}
-        invoices = {k: [] for k in contracts_lookup}
-        contracts = []
-
-        for doc in all_docs:
-            matched_id = self._get_matched_contract_id(doc)
-            if matched_id and matched_id in contracts_lookup:
-                invoices[matched_id].append(doc)
-            else:
-                contracts.append(doc)
-
-        return contracts, invoices
-
-    def _get_matched_contract_id(self, doc: Document) -> str | None:
-        if doc.category == DocumentCategory.CONTRACT.value:
-            return None
-        return doc.extracted_data.get('matched_contract_id') if doc.extracted_data else None
 
     @staticmethod
     async def get_or_create_document(db: AsyncSession, file_id: str, filename: str) -> Document:

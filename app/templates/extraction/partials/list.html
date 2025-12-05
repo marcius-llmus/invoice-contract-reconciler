@@ -1,5 +1,3 @@
-{% for doc in contracts %}
-    {% with children = invoices.get(doc.id, []) %}
-        {% include "extraction/partials/row.html" %}
-    {% endwith %}
+{% for doc in documents %}
+    {% include "extraction/partials/row.html" %}
 {% endfor %}
