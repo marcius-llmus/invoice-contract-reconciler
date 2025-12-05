@@ -1,4 +1,8 @@
-> **WARNING**: This is a Proof of Concept (PoC). The codebase is currently untested and intended for demonstration purposes only.
+!!! **WARNING**: This is a Proof of Concept. The codebase is currently untested and intended for demonstration purposes only !!!
+
+This PoC was inspired by the following projects:
+- https://github.com/run-llama/invoice-reconciler
+- https://github.com/run-llama/template-workflow-extract-basic
 
 # Extraction & Reconciliation Workflow
 
@@ -7,9 +11,9 @@ This application implements an automated document processing pipeline using even
 ## Features
 
 - **Ingestion**: Asynchronous file processing via WebSocket.
-- **Classification**: AI-driven categorization of documents.
-- **Extraction**: Structured data extraction from unstructured text.
-- **Reconciliation**: Logic to match invoices with contracts and flag anomalies.
+- **Classification**: [LlamaIndex Classify](https://developers.llamaindex.ai/python/cloud/llamaclassify/getting_started/)
+- **Extraction**: [LlamaIndex Parse](https://www.llamaindex.ai/llamaparse)
+- **Reconciliation**: GPT 4.1 mini.
 - **Real-time Dashboard**: HTMX-based interface for monitoring processing status and viewing results.
 
 ![img.png](img.png)
@@ -19,9 +23,9 @@ This application implements an automated document processing pipeline using even
 Requires Python 3.10+.
 
 1. **Install Dependencies**
-   Using `uv` or `pip`:
+   Using `uv``:
    ```bash
-   pip install -e .
+   uv sync
    ```
 
 2. **Configuration**
