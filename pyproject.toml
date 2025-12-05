@@ -14,6 +14,7 @@ dependencies = [
     "llama-index-llms-openai>=0.3.0",
     "llama-cloud-services>=0.6.69",
     "pandas>=2.3.3",
+    "fastparquet>=2024.11.0",
 ]
 
 [dependency-groups]
