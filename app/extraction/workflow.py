@@ -153,50 +153,50 @@ class DocumentAutomationWorkflow(Workflow):
 
             ctx.write_event_to_stream(StatusEvent(file_id=event.file_id, message="Extracting content..."))
 
-            try:
-                result_data = await self.extraction.extract(event.file_path, event.classification)
+        try:
+            result_data = await self.extraction.extract(event.file_path, event.classification)
 
-                # Handle Contract (Composite Result: Text + Data) vs Invoice (Data only)
-                if event.classification.document_category == DocumentCategory.CONTRACT:
-                    # result_data is {"text_content": str, "extracted_data": dict}
-                    text_content = result_data.get("text_content")
-                    extracted_data = result_data.get("extracted_data")
-                    
-                    await self.storage.update_doc(
-                        db,
-                        event.file_id,
-                        category=event.classification.document_category.value,
-                        text_content=text_content,
-                        extracted_data=extracted_data
-                    )
-                    final_data = extracted_data
-                else:
-                    await self.storage.update_doc(
-                        db,
-                        event.file_id,
-                        category=event.classification.document_category.value,
-                        extracted_data=result_data
-                    )
-                    final_data = result_data
+            # Handle Contract (Composite Result: Text + Data) vs Invoice (Data only)
+            if event.classification.document_category == DocumentCategory.CONTRACT:
+                # result_data is {"text_content": str, "extracted_data": dict}
+                text_content = result_data.get("text_content")
+                extracted_data = result_data.get("extracted_data")
 
-                return ExtractionFinishedEvent(
-                    file_id=event.file_id, filename=event.filename,
-                    status="success",
-                    classification=event.classification, category=event.classification.document_category,
-                    data=final_data
+                await self.storage.update_doc(
+                    db,
+                    event.file_id,
+                    category=event.classification.document_category.value,
+                    text_content=text_content,
+                    extracted_data=extracted_data
                 )
-            except Exception as e:
-                ctx.write_event_to_stream(StatusEvent(file_id=event.file_id, message=f"Extraction error: {e}", level="error"))
-                async with sessionmanager.session() as db:
-                    await self.storage.update_doc(db, event.file_id, category="failed", reconciliation_notes=f"Extraction failed: {e}")
-                return ExtractionFinishedEvent(
-                    file_id=event.file_id,
-                    status="skipped",
-                    result=ProcessingResult(
-                        file_id=event.file_id, filename=event.filename, classification=event.classification,
-                        reconciliation_notes=f"Extraction failed: {e}"
-                    )
+                final_data = extracted_data
+            else:
+                await self.storage.update_doc(
+                    db,
+                    event.file_id,
+                    category=event.classification.document_category.value,
+                    extracted_data=result_data
                 )
+                final_data = result_data
+
+            return ExtractionFinishedEvent(
+                file_id=event.file_id, filename=event.filename,
+                status="success",
+                classification=event.classification, category=event.classification.document_category,
+                data=final_data
+            )
+        except Exception as e:
+            ctx.write_event_to_stream(StatusEvent(file_id=event.file_id, message=f"Extraction error: {e}", level="error"))
+            async with sessionmanager.session() as db:
+                await self.storage.update_doc(db, event.file_id, category="failed", reconciliation_notes=f"Extraction failed: {e}")
+            return ExtractionFinishedEvent(
+                file_id=event.file_id,
+                status="skipped",
+                result=ProcessingResult(
+                    file_id=event.file_id, filename=event.filename, classification=event.classification,
+                    reconciliation_notes=f"Extraction failed: {e}"
+                )
+            )
 
     @step
     async def prepare_reconciliation(
@@ -286,7 +286,6 @@ class DocumentAutomationWorkflow(Workflow):
                 extracted_data=final_data,
                 reconciliation_notes=notes,
                 discrepancies=[d.model_dump() for d in discrepancies],
-                contract_id=matched_id
             )
 
             await self.storage.update_doc(
