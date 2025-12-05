@@ -69,7 +69,6 @@ class ExtractionService:
         documents = await parser.aload_data(file_path)
         return "\n\n".join([d.text for d in documents])
 
-    @staticmethod
     async def _extract_contract(self, file_path: str) -> dict:
         """Extracts text AND structured data from a contract."""
         full_text = await self._parse_text(file_path)
