@@ -88,6 +88,8 @@ class DocumentAutomationWorkflow(Workflow):
             classification = results.get(f_info.file_id)
             if not classification:
                 ctx.write_event_to_stream(StatusEvent(file_id=f_info.file_id, message="Classification failed.", level="error"))
+                async with sessionmanager.session() as db:
+                    await self.storage.update_doc(db, f_info.file_id, category="failed", reconciliation_notes="Classification failed.")
                 ctx.send_event(ExtractionFinishedEvent(
                     file_id=f_info.file_id,
                     status="skipped",
@@ -113,6 +115,8 @@ class DocumentAutomationWorkflow(Workflow):
             )
 
             if classification.document_category == DocumentCategory.OTHER:
+                async with sessionmanager.session() as db:
+                    await self.storage.update_doc(db, f_info.file_id, category="other", reconciliation_notes="Skipped: Unsupported category.")
                 ctx.send_event(ExtractionFinishedEvent(
                     file_id=f_info.file_id,
                     status="skipped",
@@ -183,6 +187,8 @@ class DocumentAutomationWorkflow(Workflow):
                 )
             except Exception as e:
                 ctx.write_event_to_stream(StatusEvent(file_id=event.file_id, message=f"Extraction error: {e}", level="error"))
+                async with sessionmanager.session() as db:
+                    await self.storage.update_doc(db, event.file_id, category="failed", reconciliation_notes=f"Extraction failed: {e}")
                 return ExtractionFinishedEvent(
                     file_id=event.file_id,
                     status="skipped",

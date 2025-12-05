@@ -48,27 +48,33 @@ class StorageService:
         result = await db.execute(stmt)
         return [doc for doc in result.scalars().all() if not doc.extracted_data.get('matched_contract_id')]
 
-    @staticmethod
-    async def get_dashboard_view_data(db: AsyncSession) -> tuple[list[Document], dict[str, list[Document]]]:
+    async def get_dashboard_view_data(self, db: AsyncSession) -> tuple[list[Document], dict[str, list[Document]]]:
         """Retrieves and organizes documents for the dashboard view."""
-        result = await db.execute(select(Document).order_by(Document.created_at.desc()))
-        all_docs = result.scalars().all()
+        all_docs = await self._fetch_all_documents(db)
+        return self._organize_documents(all_docs)
 
-        contracts = {d.id: d for d in all_docs if d.category == 'contract'}
-        children_map = {k: [] for k in contracts}
-        root_docs = []
+    async def _fetch_all_documents(self, db: AsyncSession) -> list[Document]:
+        result = await db.execute(select(Document).order_by(Document.created_at.desc()))
+        return list(result.scalars().all())
+
+    def _organize_documents(self, all_docs: list[Document]) -> tuple[list[Document], dict[str, list[Document]]]:
+        contracts_lookup = {d.id: d for d in all_docs if d.category == DocumentCategory.CONTRACT.value}
+        invoices = {k: [] for k in contracts_lookup}
+        contracts = []
 
         for doc in all_docs:
-            if doc.category == 'contract':
-                root_docs.append(doc)
+            matched_id = self._get_matched_contract_id(doc)
+            if matched_id and matched_id in contracts_lookup:
+                invoices[matched_id].append(doc)
             else:
-                matched_id = doc.extracted_data.get('matched_contract_id') if doc.extracted_data else None
-                if matched_id and matched_id in contracts:
-                    children_map[matched_id].append(doc)
-                else:
-                    root_docs.append(doc)
-        
-        return root_docs, children_map
+                contracts.append(doc)
+
+        return contracts, invoices
+
+    def _get_matched_contract_id(self, doc: Document) -> str | None:
+        if doc.category == DocumentCategory.CONTRACT.value:
+            return None
+        return doc.extracted_data.get('matched_contract_id') if doc.extracted_data else None
 
     @staticmethod
     async def get_or_create_document(db: AsyncSession, file_id: str, filename: str) -> Document:
@@ -81,7 +87,6 @@ class StorageService:
         # Create new
         new_doc = Document(id=file_id, filename=filename, category="processing")
         db.add(new_doc)
-        await db.refresh(new_doc)
         return new_doc
 
     @staticmethod
@@ -89,3 +94,17 @@ class StorageService:
         """Retrieves file IDs for a list of filenames."""
         result = await db.execute(select(Document).where(Document.filename.in_(filenames)))
         return [d.id for d in result.scalars().all()]
+
+    @staticmethod
+    async def get_incomplete_file_ids(db: AsyncSession) -> list[str]:
+        """Retrieves IDs of documents that are failed, stuck processing, or unmatched invoices."""
+        result = await db.execute(select(Document))
+        docs = result.scalars().all()
+        ids = []
+        for d in docs:
+            if d.category in ["processing", "failed", "unknown", "other"]:
+                ids.append(d.id)
+            elif d.category == "invoice":
+                if not d.extracted_data or not d.extracted_data.get("matched_contract_id"):
+                    ids.append(d.id)
+        return ids

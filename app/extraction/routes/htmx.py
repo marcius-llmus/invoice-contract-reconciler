@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 @router.get("/", response_class=HTMLResponse)
 async def extraction_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     """Renders the main dashboard for Extraction Review."""
-    root_docs, children_map = await StorageService().get_dashboard_view_data(db)
+    contracts, invoices = await StorageService().get_dashboard_view_data(db)
 
     return templates.TemplateResponse(
         request=request,
         name="extraction/index.html",
-        context={"documents": root_docs, "children_map": children_map}
+        context={"contracts": contracts, "invoices": invoices}
     )
 
 

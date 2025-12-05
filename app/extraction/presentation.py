@@ -33,6 +33,8 @@ class ExtractionWebSocketHandler:
                     await self._handle_start_batch(data)
                 elif data.get("type") == "retry_match":
                     await self._handle_retry_match(data)
+                elif data.get("type") == "retry_incomplete":
+                    await self._handle_retry_incomplete()
                 else:
                     raise ValueError("Invalid data received")
 
@@ -90,8 +92,21 @@ class ExtractionWebSocketHandler:
             workflow = DocumentAutomationWorkflow(timeout=600, verbose=True)
             await self._run_workflow(workflow, file_ids)
 
+    async def _handle_retry_incomplete(self):
+        logger.info("Retrying all incomplete items")
+        async with sessionmanager.session() as db:
+            file_ids = await self.storage.get_incomplete_file_ids(db)
+            for fid in file_ids:
+                await self.storage.update_doc(db, fid, reconciliation_notes=None, discrepancies=None)
+
+        if file_ids:
+            logger.info(f"Triggering workflow with {len(file_ids)} incomplete files")
+            workflow = DocumentAutomationWorkflow(timeout=600, verbose=True)
+            await self._run_workflow(workflow, file_ids)
+
     async def _run_workflow(self, workflow: DocumentAutomationWorkflow, file_ids: list[str]):
         try:
+            await self._broadcast_controls(running=True)
             logger.info(f"Starting workflow for files: {file_ids}")
             handler = workflow.run(file_ids=file_ids)
 
@@ -99,7 +114,7 @@ class ExtractionWebSocketHandler:
                 if isinstance(event, StatusEvent):
                     await self._handle_status_event(event)
                 elif isinstance(event, ProcessingCompleteEvent):
-                    await self._handle_completion_event(event)
+                    await self._handle_completion_event()
 
             await handler
             logger.info(f"Workflow completed successfully.")
@@ -110,6 +125,8 @@ class ExtractionWebSocketHandler:
         except Exception as e:
             logger.error(f"Error in websocket workflow: {e}", exc_info=True)
             pass
+        finally:
+            await self._broadcast_controls(running=False)
 
     async def _handle_status_event(self, event: StatusEvent):
         if not event.file_id:
@@ -122,7 +139,7 @@ class ExtractionWebSocketHandler:
         html = self._create_status_html(event.file_id, event.message, color)
         await self.ws_manager.send_text(html)
 
-    async def _handle_completion_event(self, event: ProcessingCompleteEvent):
+    async def _handle_completion_event(self):
         await self._broadcast_list_update()
 
     @staticmethod
@@ -135,12 +152,17 @@ class ExtractionWebSocketHandler:
 
     async def _broadcast_list_update(self):
         async with sessionmanager.session() as db:
-            root_docs, children_map = await self.storage.get_dashboard_view_data(db)
+            contracts, invoices = await self.storage.get_dashboard_view_data(db)
             
             html = templates.get_template("extraction/partials/list.html").render(
-                documents=root_docs,
-                children_map=children_map
+                contracts=contracts,
+                invoices=invoices
             )
             
             wrapper = f'<div id="file-list" hx-swap-oob="innerHTML">{html}</div>'
             await self.ws_manager.send_text(wrapper)
+
+    async def _broadcast_controls(self, running: bool):
+        """Updates the global controls area (Retry button)."""
+        html = templates.get_template("extraction/partials/global_controls.html").render(running=running)
+        await self.ws_manager.send_text(html)

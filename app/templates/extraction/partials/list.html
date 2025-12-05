@@ -1,5 +1,5 @@
-{% for doc in documents %}
-    {% with children = children_map.get(doc.id, []) %}
+{% for doc in contracts %}
+    {% with children = invoices.get(doc.id, []) %}
         {% include "extraction/partials/row.html" %}
     {% endwith %}
 {% endfor %}

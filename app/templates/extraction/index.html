@@ -34,6 +34,8 @@
     <div class="flex-1 overflow-hidden flex flex-col">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Processing Queue</h2>
+            <!-- Global Controls Placeholder -->
+            <div id="global-controls">{% include "extraction/partials/global_controls.html" %}</div>
         </div>
         
         <div id="file-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
@@ -112,6 +114,13 @@
         wsWrapper.send(JSON.stringify({
             type: 'retry_match',
             file_id: fileId
+        }));
+    }
+
+    function retryIncomplete() {
+        if (!wsWrapper) return;
+        wsWrapper.send(JSON.stringify({
+            type: 'retry_incomplete'
         }));
     }
 
