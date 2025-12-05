@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 from llama_cloud import ClassifierRule
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.extraction.clients import get_classifier_client
@@ -20,11 +21,10 @@ class ClassificationService:
 
         for f in files:
             # 1. Check Cache
-            cached = await self._check_cache(db, f)
-            if cached:
+            if cached := await self._check_cache(db, f):
                 results[f.file_id] = cached
                 continue
-            
+
             # 2. Check Extension
             by_ext = self._classify_by_extension(f)
             if by_ext:
@@ -47,21 +47,27 @@ class ClassificationService:
 
     async def _check_cache(self, db: AsyncSession, file_info: FileInfo) -> DocumentClassification | None:
         if doc := await self.storage.get_doc(db, file_info.file_id):
-            if doc.category and doc.category not in ["processing", "unknown"]:
-                try:
-                    cat = DocumentCategory(doc.category)
-                    return DocumentClassification(
-                        file_type="pdf" if file_info.filename.lower().endswith(".pdf") else "xlsx",
-                        document_category=cat,
-                        confidence=1.0,
-                        summary="Retrieved from cache"
-                    )
-                except ValueError:
-                    pass
+            if doc.category in [c.value for c in DocumentCategory]:
+                cat = DocumentCategory(doc.category)
+                file_name = file_info.filename.lower()
+                file_type: Literal["pdf", "xlsx", "unknown"] = "unknown"
+
+                if file_name.endswith(".xlsx"):
+                    file_type = "xlsx"
+                elif file_name.endswith(".pdf"):
+                    file_type = "pdf"
+                
+                return DocumentClassification(
+                    file_type=file_type,
+                    document_category=cat,
+                    confidence=1.0,
+                    summary="Retrieved from cache"
+                )
         return None
 
     @staticmethod
     def _classify_by_extension(file_info: FileInfo) -> DocumentClassification | None:
+        """We con consider ALL sheets as INVOICE"""
         ext = Path(file_info.filename).suffix.lower()
         if ext == ".xlsx":
             return DocumentClassification(

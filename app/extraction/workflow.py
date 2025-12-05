@@ -129,6 +129,7 @@ class DocumentAutomationWorkflow(Workflow):
     async def extract(self, event: FileClassifiedEvent, ctx: Context) -> ExtractionFinishedEvent:
         """Extracts data using ExtractionService based on classification."""
 
+        # hacky
         field = CacheField.TEXT_CONTENT if event.classification.document_category == DocumentCategory.CONTRACT else CacheField.EXTRACTED_DATA
         
         async with sessionmanager.session() as db:
@@ -234,6 +235,7 @@ class DocumentAutomationWorkflow(Workflow):
                     invoice_data=InvoiceData(**inv.extracted_data)
                 ))
 
+        # we also reprocess invoices that were pending (from other workflows)
         new_total = completed_count + len(invoices_to_reconcile)
         await ctx.store.set("num_files", new_total)
 
