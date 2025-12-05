@@ -12,6 +12,8 @@ This application implements an automated document processing pipeline using even
 - **Reconciliation**: Logic to match invoices with contracts and flag anomalies.
 - **Real-time Dashboard**: HTMX-based interface for monitoring processing status and viewing results.
 
+![img.png](img.png)
+
 ## Installation
 
 Requires Python 3.10+.
