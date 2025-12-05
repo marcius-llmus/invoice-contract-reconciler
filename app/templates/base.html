@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llama Extraction - Document Audit</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx-ext-ws@2.0.0/ws.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            DEFAULT: '#4f4f57',
+                            lighter: '#4e4e56',
+                            card: '#4e4e59',
+                            darker: '#363232',
+                            light: '#27272a',
+                        },
+                        primary: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --color-primary: #3b82f6;
+            --color-primary-dark: #1d4ed8;
+            --color-primary-light: #60a5fa;
+            --color-dark: #4f4f57; /* zinc-950 (Deep Dark) */
+            --color-dark-lighter: #4e4e56; /* zinc-900 */
+            --color-border: #27272a; /* zinc-800 */
+            --color-dark-card: #4e4e59;
+            --color-dark-darker: #363232; /* Pure Black */
+            --color-text: #e2e8f0; /* slate-200 */
+        }
+    </style>
+</head>
+<body class="bg-dark text-gray-200 h-screen flex flex-col" style="background-color: var(--color-dark);">
+    <main class="flex-1 flex overflow-hidden bg-dark w-full">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

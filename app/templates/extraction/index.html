@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="extraction-ws-container" class="h-full w-full flex flex-col p-6 max-w-6xl mx-auto" hx-ext="ws" ws-connect="/extraction/ws">
+    
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-100 mb-2">
+            <i class="fa-solid fa-scale-balanced text-primary mr-2"></i>
+            Document Discrepancy Audit
+        </h1>
+        <p class="text-gray-400 text-sm">
+            Upload contracts and invoices. The AI will classify them, extract terms, and flag billing anomalies automatically.
+        </p>
+    </div>
+
+    <div class="mb-8">
+        <form id="upload-form"
+              class="relative border-2 border-dashed border-dark-light rounded-lg p-10 hover:border-primary transition-colors bg-dark-darker group">
+            
+            <input type="file" name="files" multiple 
+                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                   onchange="handleFiles(this.files)">
+            
+            <div class="text-center">
+                <div class="w-12 h-12 rounded-full bg-dark-card flex items-center justify-center mx-auto mb-4 group-hover:bg-primary-dark/20 transition-colors">
+                    <i class="fa-solid fa-cloud-arrow-up text-xl text-gray-400 group-hover:text-primary"></i>
+                </div>
+                <h3 class="text-sm font-medium text-gray-200">Drop files here or click to upload</h3>
+                <p class="text-xs text-gray-500 mt-1">Supports PDF, DOCX, XLSX</p>
+            </div>
+        </form>
+    </div>
+
+    <div class="flex-1 overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Processing Queue</h2>
+        </div>
+        
+        <div id="file-list" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            {% include "extraction/partials/list.html" %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let wsWrapper = null;
+
+    document.body.addEventListener('htmx:wsOpen', function(evt) {
+        if (evt.target.id === "extraction-ws-container") {
+            wsWrapper = evt.detail.socketWrapper;
+            console.log("WebSocket connection established and wrapper captured.");
+        }
+    });
+
+    function handleFiles(files) {
+        if (!wsWrapper) {
+            console.error("WebSocket is not yet connected.");
+            alert("Connection to server not established yet. Please wait.");
+            return;
+        }
+        
+        const existingRows = document.querySelectorAll('[id^="file-row-"]');
+        const existingFilenames = new Set(Array.from(existingRows).map(row => row.getAttribute('data-filename')).filter(Boolean));
+        
+        const fileList = Array.from(files);
+        const newFiles = fileList.filter(f => !existingFilenames.has(f.name));
+        
+        if (newFiles.length === 0) {
+            alert("All selected files are already in the list.");
+            document.querySelector('input[type="file"]').value = '';
+            return;
+        }
+        
+        const filenames = newFiles.map(f => f.name);
+        const totalFiles = newFiles.length;
+        let uploadedCount = 0;
+
+        newFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result.split(',')[1];
+                const payload = {
+                    type: 'upload',
+                    filename: file.name,
+                    content: content
+                };
+                wsWrapper.send(JSON.stringify(payload));
+                
+                uploadedCount++;
+                if (uploadedCount === totalFiles) {
+                    setTimeout(() => {
+                        wsWrapper.send(JSON.stringify({
+                            type: 'start_batch',
+                            filenames: filenames
+                        }));
+                    }, 500);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+        document.querySelector('input[type="file"]').value = '';
+    }
+
+    function retryMatch(fileId) {
+        if (!wsWrapper) return;
+        
+        // UI Feedback immediately
+        const statusBadge = document.getElementById(`status-${fileId}`);
+        if(statusBadge) statusBadge.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Retrying...';
+        
+        wsWrapper.send(JSON.stringify({
+            type: 'retry_match',
+            file_id: fileId
+        }));
+    }
+
+    function toggleDetails(id) {
+        const details = document.getElementById(`details-${id}`);
+        const icon = document.getElementById(`icon-${id}`);
+        if (details && icon) {
+            details.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+    }
+</script>
+{% endblock %}

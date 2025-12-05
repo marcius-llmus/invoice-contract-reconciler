@@ -1,0 +1,9 @@
+- classify organize items in contracts and invoices
+- Sheets if is xlsx, parse if pdf
+- map all documents and try to connect which is from what
+- identify errors and show through events.
+
+
+----
+process files separately (check example of adryian)
+move to react and llama agents
